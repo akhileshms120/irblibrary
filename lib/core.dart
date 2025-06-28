@@ -36,12 +36,16 @@ class _BorrowFormScreenState extends State<BorrowFormScreen> {
     try {
       // Test 1: Check if we can connect to Supabase
       final client = Supabase.instance.client;
+      print('Supabase client initialized: ${client.supabaseUrl}');
       
       // Test 2: Try to fetch data from the table
+      print('Attempting to query borrowings table...');
       final response = await client
           .from('borrowings')
-          .select('count')
+          .select('*')
           .limit(1);
+      
+      print('Query successful: $response');
       
       setState(() {
         connectionStatus = '✅ Connected Successfully!';
@@ -55,18 +59,29 @@ class _BorrowFormScreenState extends State<BorrowFormScreen> {
       );
       
     } catch (e) {
+      print('Supabase connection error details: $e');
       setState(() {
         connectionStatus = '❌ Connection Failed: $e';
       });
       
+      String errorMessage = 'Connection failed';
+      if (e.toString().contains('404')) {
+        errorMessage = 'Table "borrowings" not found. Please create it in Supabase.';
+      } else if (e.toString().contains('401')) {
+        errorMessage = 'Invalid API key. Please check your Supabase credentials.';
+      } else if (e.toString().contains('403')) {
+        errorMessage = 'Access denied. Please check your RLS policies.';
+      } else {
+        errorMessage = 'Error: $e';
+      }
+      
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Connection failed: $e'),
+          content: Text(errorMessage),
           backgroundColor: Colors.red,
+          duration: Duration(seconds: 5),
         ),
       );
-      
-      print('Supabase connection error: $e');
     }
   }
 
